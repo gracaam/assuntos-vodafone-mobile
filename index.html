@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Assuntos · Vodafone Business</title>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<style>
+  :root { --vf: #dc2626; --ink: #171717; --muted: #737373; --line: #e5e5e5; --bg: #fafafa; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink); }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 20px 16px 40px; }
+  h1 { font-size: 18px; font-weight: 700; margin: 0 0 2px; }
+  .sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  input[type="email"], input[type="password"], input[type="text"], textarea {
+    width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px;
+    font-size: 15px; font-family: inherit; outline: none; background: #fff; color: var(--ink);
+  }
+  input:focus, textarea:focus { border-color: var(--vf); }
+  textarea { resize: vertical; min-height: 96px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: none; border-radius: 999px;
+    padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-vf { background: var(--vf); color: #fff; width: 100%; padding: 13px; font-size: 15px; }
+  .btn-vf:disabled { opacity: 0.5; }
+  .btn-vf:active { background: #b91c1c; }
+  .chip { border: 1px solid var(--line); background: #fff; color: var(--muted); border-radius: 999px;
+    padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .chip.on-urgente { background: #fef2f2; border-color: #fca5a5; color: var(--vf); }
+  .chip.on-cliente { background: #f5f5f5; border-color: #a3a3a3; color: var(--ink); }
+  .chips { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+  .erro { color: var(--vf); font-size: 13px; margin-top: 8px; }
+  .field-mt { margin-top: 10px; }
+  .lista-titulo { font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 24px 0 10px; }
+  .item { display: flex; align-items: flex-start; gap: 10px; padding: 12px 0; border-top: 1px solid var(--line); }
+  .item:first-child { border-top: none; }
+  .item .txt { flex: 1; min-width: 0; }
+  .item .comentario { font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+  .item .meta { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .item .estado { font-size: 11px; white-space: nowrap; padding-top: 2px; }
+  .estado.ok { color: #16a34a; }
+  .estado.pend { color: #d97706; }
+  .footer { text-align: center; font-size: 12px; color: var(--muted); margin-top: 24px; }
+  .footer button { background: none; border: none; color: var(--vf); font-size: 12px; cursor: pointer; padding: 0; margin-left: 4px; text-decoration: underline; }
+  .hidden { display: none !important; }
+  .vazio { font-size: 13px; color: var(--muted); text-align: center; padding: 20px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔴 Assuntos</h1>
+  <div class="sub">Vodafone Business · registo rápido a partir do telemóvel</div>
+
+  <!-- Ecrã de login — Firebase Auth mantém a sessão sozinho depois do 1º login neste
+       browser, nunca pede outra vez (ver onAuthStateChanged abaixo). -->
+  <div id="login-card" class="card hidden">
+    <label for="login-email">Email</label>
+    <input type="email" id="login-email" autocomplete="username" />
+    <div class="field-mt">
+      <label for="login-pass">Password</label>
+      <input type="password" id="login-pass" autocomplete="current-password" />
+    </div>
+    <div class="field-mt">
+      <button class="btn btn-vf" id="btn-login">Entrar</button>
+    </div>
+    <div class="erro hidden" id="login-erro"></div>
+  </div>
+
+  <!-- Formulário de captura — só visível depois de autenticado. -->
+  <div id="form-card" class="card hidden">
+    <label for="comentario">O que o cliente pediu ou indicou</label>
+    <textarea id="comentario" placeholder="Escreve aqui..."></textarea>
+    <div class="chips">
+      <button type="button" class="chip" id="chip-urgente">🔴 Urgente</button>
+      <button type="button" class="chip" id="chip-cliente">+ Cliente</button>
+    </div>
+    <input type="text" id="cliente" class="hidden field-mt" placeholder="Nome do cliente" />
+    <div class="field-mt">
+      <button class="btn btn-vf" id="btn-adicionar">+ Adicionar assunto</button>
+    </div>
+    <div class="erro hidden" id="form-erro"></div>
+  </div>
+
+  <div id="lista-secao" class="hidden">
+    <div class="lista-titulo">Últimos adicionados</div>
+    <div id="lista" class="card"></div>
+  </div>
+
+  <div id="footer" class="footer hidden">
+    Ligado como <span id="footer-email"></span>
+    <button id="btn-sair">Sair</button>
+  </div>
+</div>
+
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyChXSyRs1zwfl0vxoF-rtyEst9Dc97zc3g",
+  authDomain: "dashboard-vodafone.firebaseapp.com",
+  projectId: "dashboard-vodafone",
+  storageBucket: "dashboard-vodafone.firebasestorage.app",
+  messagingSenderId: "795561922165",
+  appId: "1:795561922165:web:bb94e214b8c47c5fa1b23c",
+};
+// Nota: este apiKey NÃO é secreto — identifica o projeto Firebase, não autoriza nada
+// sozinho. É normal e seguro aparecer em código público/hospedado publicamente. A
+// segurança real vem das Regras de Segurança do Firestore (só utilizador autenticado
+// lê/escreve assuntos_inbox) + login obrigatório, nunca de esconder este objeto.
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const el = (id) => document.getElementById(id);
+let urgente = false;
+let mostrarCliente = false;
+
+el("chip-urgente").addEventListener("click", () => {
+  urgente = !urgente;
+  el("chip-urgente").classList.toggle("on-urgente", urgente);
+});
+el("chip-cliente").addEventListener("click", () => {
+  mostrarCliente = !mostrarCliente;
+  el("chip-cliente").classList.toggle("on-cliente", mostrarCliente);
+  el("cliente").classList.toggle("hidden", !mostrarCliente);
+  if (mostrarCliente) el("cliente").focus();
+});
+
+el("btn-login").addEventListener("click", async () => {
+  el("login-erro").classList.add("hidden");
+  const email = el("login-email").value.trim();
+  const pass = el("login-pass").value;
+  if (!email || !pass) return;
+  el("btn-login").disabled = true;
+  try {
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+    await auth.signInWithEmailAndPassword(email, pass);
+  } catch (e) {
+    el("login-erro").textContent = "Não consegui entrar — confirma o email e password.";
+    el("login-erro").classList.remove("hidden");
+  }
+  el("btn-login").disabled = false;
+});
+
+el("btn-sair").addEventListener("click", () => auth.signOut());
+
+el("btn-adicionar").addEventListener("click", async () => {
+  el("form-erro").classList.add("hidden");
+  const comentario = el("comentario").value.trim();
+  if (!comentario) {
+    el("form-erro").textContent = "Escreve o que o cliente pediu antes de adicionar.";
+    el("form-erro").classList.remove("hidden");
+    return;
+  }
+  const cliente = mostrarCliente ? el("cliente").value.trim() : "";
+  const importancia = urgente ? "Alta" : "Média";
+  const dataPedido = new Date().toISOString().slice(0, 10);
+  el("btn-adicionar").disabled = true;
+  try {
+    // .add() aqui não espera confirmação do servidor para o listener local reagir —
+    // o SDK do Firestore já mostra o documento otimisticamente (offline-first), e o
+    // próprio campo doc.metadata.hasPendingWrites do onSnapshot abaixo é que diz se
+    // já confirmou no servidor ou ainda está "a caminho" — não precisa de nenhum
+    // estado extra aqui para isso.
+    await db.collection("assuntos_inbox").add({
+      cliente, comentario, importancia, dataPedido,
+      criadoEm: firebase.firestore.FieldValue.serverTimestamp(),
+      processado: false,
+    });
+    el("comentario").value = "";
+    el("cliente").value = "";
+    urgente = false; mostrarCliente = false;
+    el("chip-urgente").classList.remove("on-urgente");
+    el("chip-cliente").classList.remove("on-cliente");
+    el("cliente").classList.add("hidden");
+  } catch (e) {
+    el("form-erro").textContent = "Não consegui gravar — confirma a ligação à internet.";
+    el("form-erro").classList.remove("hidden");
+  }
+  el("btn-adicionar").disabled = false;
+});
+
+let unsubscribeLista = null;
+
+function ligarLista() {
+  if (unsubscribeLista) return;
+  unsubscribeLista = db.collection("assuntos_inbox")
+    .orderBy("criadoEm", "desc")
+    .limit(15)
+    .onSnapshot((snap) => {
+      el("lista-secao").classList.remove("hidden");
+      if (snap.empty) {
+        el("lista").innerHTML = '<div class="vazio">Ainda não adicionaste nenhum assunto.</div>';
+        return;
+      }
+      el("lista").innerHTML = snap.docs.map((doc) => {
+        const d = doc.data();
+        // hasPendingWrites: true enquanto a escrita ainda não confirmou no servidor
+        // (offline ou em trânsito) — sinal nativo do Firestore, não precisa de um
+        // campo "sincronizado" próprio.
+        const pendente = doc.metadata.hasPendingWrites;
+        const dataTxt = d.dataPedido ? new Date(d.dataPedido).toLocaleDateString("pt-PT") : "";
+        return `<div class="item">
+          <div class="txt">
+            <div class="comentario">${escapeHtml(d.comentario || "")}</div>
+            <div class="meta">${d.cliente ? escapeHtml(d.cliente) + " · " : ""}${d.importancia === "Alta" ? "🔴 Urgente · " : ""}${dataTxt}</div>
+          </div>
+          <div class="estado ${pendente ? "pend" : "ok"}">${pendente ? "⏳ a sincronizar" : "✓ sincronizado"}</div>
+        </div>`;
+      }).join("");
+    }, () => {
+      el("lista").innerHTML = '<div class="vazio">Não consegui carregar a lista — confirma a ligação à internet.</div>';
+    });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+auth.onAuthStateChanged((user) => {
+  el("login-card").classList.toggle("hidden", !!user);
+  el("form-card").classList.toggle("hidden", !user);
+  el("footer").classList.toggle("hidden", !user);
+  if (user) {
+    el("footer-email").textContent = user.email;
+    ligarLista();
+  } else {
+    el("lista-secao").classList.add("hidden");
+    if (unsubscribeLista) { unsubscribeLista(); unsubscribeLista = null; }
+  }
+});
+</script>
+</body>
+</html>
