@@ -144,7 +144,14 @@
 
   <section id="v-relatorios" class="wrap hidden">
     <div class="topbar"><h1>Relatórios</h1><button class="sec mini" data-sair>Sair</button></div>
-    <div class="vazio">Ainda não está disponível no telemóvel.<br>Continua no computador por agora.</div>
+    <div class="sub">Desempenho comercial por período. As indicações do Jev e o PDF ficam no computador.</div>
+    <div class="chips" id="r-tipo"></div>
+    <div class="row" style="margin-bottom:10px">
+      <button class="sec" id="r-prev" aria-label="Período anterior">‹</button>
+      <div id="r-per" style="text-align:center;font-weight:600"></div>
+      <button class="sec" id="r-next" aria-label="Período seguinte">›</button>
+    </div>
+    <div id="r-lista"></div>
   </section>
 
   <nav class="nav" id="nav">
@@ -360,6 +367,47 @@ function filtrarPorCliente(itens, q) { return itens.filter((x) => textoContem([x
 function entradaContacto({ tipo, nota, proximoPasso, proximoEm, em, resolveu }) {
   return JSON.parse(JSON.stringify({ tipo, nota: nota || "", proximoPasso: proximoPasso || "", proximoEm: proximoEm || null, em: em || new Date().toISOString(), ...(resolveu ? { resolveu } : {}) }));
 }
+// Relatórios: cópia fiel de periodoRelatorio/metricasRelatorio/objetivosRelatorio do dashboard.html (sem Jev nem impressão) — manter em sincronia.
+function isoDeData(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function periodoRelatorio(tipo, desloc, hoje = new Date()) {
+  const y = hoje.getFullYear(), m = hoje.getMonth(), d = hoje.getDate();
+  let a, b;
+  if (tipo === "semana") { a = new Date(y, m, d - ((hoje.getDay() + 6) % 7) + 7 * desloc); b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 6); }
+  else if (tipo === "mes") { a = new Date(y, m + desloc, 1); b = new Date(y, m + desloc + 1, 0); }
+  else { const q = Math.floor(m / 3) * 3 + 3 * desloc; a = new Date(y, q, 1); b = new Date(y, q + 3, 0); }
+  return [isoDeData(a), isoDeData(b)];
+}
+function nomePeriodoRelatorio(tipo, per) {
+  if (tipo === "mes") return labelMes(per[0].slice(0, 7));
+  if (tipo === "trimestre") return labelTrimestre(trimestreChave(per[0].slice(0, 7)));
+  return `${formatarDataIsoPT(per[0]).slice(0, 5)} a ${formatarDataIsoPT(per[1])}`;
+}
+function metricasRelatorio(clientes, negocios, per) {
+  const dentro = (d) => !!d && d.slice(0, 10) >= per[0] && d.slice(0, 10) <= per[1];
+  const m = { contactos: 0, clientesContactados: 0, porTipo: {}, entregues: 0, fechadas: 0 };
+  clientes.forEach((c) => {
+    const cs = contactosOrdenados(c).filter((x) => dentro(x.em));
+    if (cs.length) m.clientesContactados++;
+    cs.forEach((x) => { const t = x.tipo || "Outro"; m.contactos++; m.porTipo[t] = (m.porTipo[t] || 0) + 1; });
+    (Array.isArray(c.propostas) ? c.propostas : []).forEach((p) => { if (dentro(p.entregueEm)) m.entregues++; if (p.fechada && dentro(p.fechadaEm)) m.fechadas++; });
+  });
+  const soma = (l) => ({ n: l.length, valor: l.reduce((t, n) => t + (calcularRlmcAjustada(n) || 0), 0) });
+  const fech = negocios.filter((n) => n.estado === "IMPLEMENTADO" && dentro(n.dataInicio));
+  m.negocios = { ...soma(fech), nova: soma(fech.filter((n) => n.natureza === "NRECEITA")), refid: soma(fech.filter((n) => n.natureza === "REFIDELIZAÇÃO")), porCategoria: {} };
+  Object.keys(OBJETIVO_TRIMESTRAL_POR_CATEGORIA).forEach((c) => { m.negocios.porCategoria[c] = soma(fech.filter((n) => calcularCategoriaNegocio(n.natureza, n.categoriaObjetivo, n.produtoSS) === c)); });
+  return m;
+}
+// Objetivos do trimestre do período: implementado e projeção com o pipeline.
+function objetivosRelatorio(negocios, objetivos, per) {
+  const tri = trimestreChave(per[0].slice(0, 7));
+  const doTri = negocios.filter((n) => mesChave(n.dataInicio) && trimestreChave(mesChave(n.dataInicio)) === tri);
+  const val = (estados, cat) => doTri.filter((n) => estados.includes(n.estado) && calcularCategoriaNegocio(n.natureza, n.categoriaObjetivo, n.produtoSS) === cat).reduce((t, n) => t + (calcularRlmcAjustada(n) || 0), 0);
+  return Object.entries(objetivos).map(([categoria, objetivo]) => {
+    const real = val(["IMPLEMENTADO"], categoria), pipe = val(ESTADOS_PIPELINE, categoria);
+    const pct = (v) => (objetivo ? Math.round((v / objetivo) * 100) : 0);
+    return { categoria, objetivo, real, pctReal: pct(real), pctProjecao: pct(real + pipe) };
+  });
+}
 // </PURE>
 
 /* ============ Firebase ============ */
@@ -400,11 +448,11 @@ auth.onAuthStateChanged((u) => {
   $("app").classList.toggle("hidden", !u);
   if (!u) { assuntos = []; negocios = []; clientes = []; mapaContratos = new Map(); return; }
   const erro = (e) => console.warn("Leitura falhou:", e.message);
-  unsubs.push(db.collection("clientes").onSnapshot((s) => { clientes = s.docs.map((d) => d.data()); desenharHoje(); }, erro));
+  unsubs.push(db.collection("clientes").onSnapshot((s) => { clientes = s.docs.map((d) => d.data()); desenharHoje(); desenharRelatorios(); }, erro));
   unsubs.push(db.collection("contratos_permanencia").onSnapshot((s) => { const m = new Map(); s.forEach((d) => m.set(d.id, d.data())); mapaContratos = m; desenharHoje(); }, erro));
   unsubs.push(db.collection("assuntos").onSnapshot((s) => { assuntos = s.docs.map((d) => ({ ...d.data(), _pend: d.metadata.hasPendingWrites })); desenharAssuntos(); }, erro));
-  unsubs.push(db.collection("comissoes_config").doc("objetivos_trimestrais").onSnapshot((d) => { objetivosDoc = d.exists ? d.data() : {}; desenharComissoes(); }, erro));
-  unsubs.push(db.collection("negocios").onSnapshot((s) => { negocios = s.docs.map((d) => ({ ...d.data(), _pend: d.metadata.hasPendingWrites })); desenharNegocios(); desenharComissoes(); }, erro));
+  unsubs.push(db.collection("comissoes_config").doc("objetivos_trimestrais").onSnapshot((d) => { objetivosDoc = d.exists ? d.data() : {}; desenharComissoes(); desenharRelatorios(); }, erro));
+  unsubs.push(db.collection("negocios").onSnapshot((s) => { negocios = s.docs.map((d) => ({ ...d.data(), _pend: d.metadata.hasPendingWrites })); desenharNegocios(); desenharComissoes(); desenharRelatorios(); }, erro));
 });
 
 /* ---- Navegação ---- */
@@ -633,6 +681,34 @@ function desenharComissoes() {
 }
 $("c-prev").onclick = () => { triAtual = somaTrimestre(triAtual, -1); desenharComissoes(); };
 $("c-next").onclick = () => { triAtual = somaTrimestre(triAtual, 1); desenharComissoes(); };
+
+/* ---- Relatórios (só leitura) ---- */
+let tipoRel = "semana", deslocRel = 0;
+function desenharRelatorios() {
+  chips($("r-tipo"), [["semana", "Semanal"], ["mes", "Mensal"], ["trimestre", "Trimestral"]], tipoRel, (v) => { tipoRel = v; deslocRel = 0; desenharRelatorios(); });
+  const per = periodoRelatorio(tipoRel, deslocRel), ant = periodoRelatorio(tipoRel, deslocRel - 1);
+  $("r-per").textContent = nomePeriodoRelatorio(tipoRel, per);
+  $("r-next").disabled = deslocRel >= 0;
+  const a = metricasRelatorio(clientes, negocios, per), b = metricasRelatorio(clientes, negocios, ant);
+  const seta = (x, y) => (x === y ? "" : x > y ? ' <span style="color:var(--ok)">▲</span>' : ' <span style="color:var(--vf)">▼</span>');
+  const linha = (t, x, y, euros) => `<tr><td>${t}</td><td style="text-align:right"><b>${euros ? eur(x) : x}</b>${seta(x, y)}</td><td style="text-align:right;color:var(--muted)">${euros ? eur(y) : y}</td></tr>`;
+  const tipos = Object.entries(a.porTipo).map(([t, n]) => `${esc(t)} ${n}`).join(" · ") || "—";
+  const tri = trimestreChave(per[0].slice(0, 7)), objs = objetivosRelatorio(negocios, objetivosDoTrimestre(objetivosDoc, tri), per);
+  $("r-lista").innerHTML = `<div class="card"><table style="width:100%;font-size:14px;border-collapse:collapse">
+      <tr style="color:var(--muted);font-size:12px"><td></td><td style="text-align:right">Este período</td><td style="text-align:right">Anterior</td></tr>
+      ${linha("Contactos", a.contactos, b.contactos)}${linha("Clientes contactados", a.clientesContactados, b.clientesContactados)}
+      ${linha("Propostas entregues", a.entregues, b.entregues)}${linha("Propostas fechadas", a.fechadas, b.fechadas)}
+      ${linha("Negócios implementados", a.negocios.n, b.negocios.n)}${linha("Nova Receita (RLMC)", a.negocios.nova.valor, b.negocios.nova.valor, true)}
+      ${linha("Refidelizações (RLMC)", a.negocios.refid.valor, b.negocios.refid.valor, true)}</table>
+      <div class="meta" style="margin-top:6px">Contactos por tipo: ${tipos}</div></div>`
+    + `<div class="card"><b>Negócios por categoria</b>` + Object.keys(a.negocios.porCategoria).map((c) => { const x = a.negocios.porCategoria[c], y = b.negocios.porCategoria[c];
+        return `<div class="meta" style="display:flex;justify-content:space-between;padding:3px 0"><span>${esc(rotuloCategoria(c))}</span><span><b>${x.n}</b> · ${eur(x.valor)}${seta(x.n, y.n)}</span></div>`; }).join("") + `</div>`
+    + `<div class="card"><b>Objetivos · ${labelTrimestre(tri)}</b><div class="meta">Barra = implementado; percentagem seguinte = com o pipeline. Atingido a partir de 90%.</div>` + objs.map((o) => `<div style="padding:5px 0">
+        <div class="meta" style="display:flex;justify-content:space-between"><span>${esc(rotuloCategoria(o.categoria))}</span><b>${o.pctReal}% → ${o.pctProjecao}%</b></div>
+        <div style="height:6px;background:#eee;border-radius:99px;overflow:hidden"><div style="height:100%;width:${Math.min(100, o.pctReal)}%;background:${o.pctReal >= 90 ? "var(--ok)" : "var(--vf)"}"></div></div></div>`).join("") + `</div>`;
+}
+$("r-prev").onclick = () => { deslocRel--; desenharRelatorios(); };
+$("r-next").onclick = () => { deslocRel = Math.min(0, deslocRel + 1); desenharRelatorios(); };
 </script>
 </body>
 </html>
