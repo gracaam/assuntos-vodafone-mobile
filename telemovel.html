@@ -70,6 +70,14 @@
   .neg .l2 .meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   select.est { width: auto; flex: none; max-width: 52%; padding: 4px 22px 4px 8px; font-size: 12px; font-weight: 600; border-radius: 99px; min-height: 32px; }
   .pesq { margin-bottom: 4px; }
+  /* Para começar o dia: grupos recolhíveis */
+  .grp { background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 10px; overflow: hidden; }
+  .grp > summary { list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 12px; min-height: 44px; font-weight: 600; font-size: 14px; cursor: pointer; }
+  .grp > summary::-webkit-details-marker { display: none; }
+  .grp.red > summary { color: #b91c1c; } .grp.amber > summary { color: #92400e; } .grp.green > summary { color: #065f46; }
+  .lh { padding: 10px 12px; border-top: 1px solid var(--line); }
+  .lh .acoes { display: flex; gap: 8px; margin-top: 8px; }
+  .lh .acoes button { flex: 1; }
 </style>
 </head>
 <body>
@@ -89,7 +97,7 @@
 
 <div id="app" class="hidden">
   <!-- Assuntos em Progresso -->
-  <section id="v-assuntos" class="wrap">
+  <section id="v-assuntos" class="wrap hidden">
     <div class="topbar"><h1>Assuntos</h1><div class="row" style="flex:none"><button id="a-novo" class="mini">+ Novo</button><button class="sec mini" data-sair>Sair</button></div></div>
     <div class="sub">Sincroniza com o dashboard no computador</div>
     <input id="a-pesq" class="pesq" type="search" placeholder="Pesquisar cliente ou texto" />
@@ -126,9 +134,12 @@
     <div id="c-lista"></div>
   </section>
 
-  <section id="v-hoje" class="wrap hidden">
+  <!-- Para começar o dia -->
+  <section id="v-hoje" class="wrap">
     <div class="topbar"><h1>Para começar o dia</h1><button class="sec mini" data-sair>Sair</button></div>
-    <div class="vazio">Ainda não está disponível no telemóvel.<br>Continua no computador por agora.</div>
+    <div class="sub">Quem contactar hoje, com as mesmas regras do dashboard</div>
+    <input id="h-pesq" class="pesq" type="search" placeholder="Pesquisar cliente" />
+    <div id="h-lista"></div>
   </section>
 
   <section id="v-relatorios" class="wrap hidden">
@@ -137,12 +148,28 @@
   </section>
 
   <nav class="nav" id="nav">
-    <button data-v="hoje"><span class="i">☀️</span>Hoje</button>
-    <button data-v="assuntos" class="on"><span class="i">💬</span>Assuntos</button>
+    <button data-v="hoje" class="on"><span class="i">☀️</span>Hoje</button>
+    <button data-v="assuntos"><span class="i">💬</span>Assuntos</button>
     <button data-v="negocios"><span class="i">📈</span>Negócios</button>
     <button data-v="comissoes"><span class="i">€</span>Comissões</button>
     <button data-v="relatorios"><span class="i">📊</span>Relatórios</button>
   </nav>
+</div>
+
+<!-- Folha de contacto / concluir / resolvido (Para começar o dia) -->
+<div id="h-sheet" class="sheet hidden">
+  <div class="topbar"><h1 id="hs-titulo">Contacto</h1><button class="sec mini" id="hs-fechar">Fechar</button></div>
+  <div class="card">
+    <div id="hs-cliente" class="nome"></div>
+    <div id="hs-ctx" class="meta"></div>
+    <div id="hs-box-tipo"><label for="hs-tipo">Como foi feito</label><select id="hs-tipo"><option>Telefone</option><option>Email</option><option>Reunião</option><option>Outro</option></select></div>
+    <label for="hs-nota" id="hs-nota-l">O que se falou</label><textarea id="hs-nota"></textarea>
+    <div id="hs-box-passo"><label for="hs-passo">Próximo passo (opcional)</label><input id="hs-passo" type="text" />
+      <label for="hs-proximo">Data do próximo passo (opcional)</label><input id="hs-proximo" type="date" /></div>
+    <div id="hs-box-data"><label for="hs-data">Data</label><input id="hs-data" type="date" /></div>
+    <div style="margin-top:12px"><button id="hs-guardar" style="width:100%">Guardar</button></div>
+    <div id="hs-erro" class="erro hidden"></div>
+  </div>
 </div>
 
 <!-- Folha de assunto (novo/editar) -->
@@ -285,6 +312,54 @@ function construirNegocio(form, existente) {
   n.categoria = calcularCategoriaNegocio(n.natureza, n.categoriaObjetivo, n.produtoSS);
   return n;
 }
+// ---- Para começar o dia: cópias fiéis de calcularListaHoje e auxiliares do dashboard.html — manter em sincronia ----
+const DIAS_PROPOSTA_SEM_RESPOSTA = 7, DIAS_PROPOSTAS_FECHADAS = 30, DIAS_SEM_CONTACTO = 90;
+function diasEntreDatasIso(de, para) { return Math.round((Date.parse(para + "T00:00:00Z") - Date.parse(de + "T00:00:00Z")) / 86400000); }
+function formatarDataIsoPT(iso) { if (!iso) return "—"; const [a, m, d] = iso.slice(0, 10).split("-"); return `${d}/${m}/${a}`; }
+const rotuloConta = (c) => { const m = /^semconta_(\d+)$/.exec(String(c)); return m ? `por atribuir (${m[1]})` : c; };
+function calcularFimMaisProximo(docCliente, hoje = new Date()) {
+  const hojeIso = hoje.toISOString().slice(0, 10), todos = [];
+  Object.entries((docCliente && docCliente.contas) || {}).forEach(([conta, dados]) => {
+    ((dados && dados.contratos) || []).forEach((c) => { if (c.fim) todos.push({ ...c, conta }); });
+  });
+  if (!todos.length) return null;
+  const futuros = todos.filter((c) => c.fim >= hojeIso).sort((a, b) => a.fim.localeCompare(b.fim));
+  const escolhido = futuros.length ? futuros[0] : todos.sort((a, b) => b.fim.localeCompare(a.fim))[0];
+  return { fim: escolhido.fim, dias: diasEntreDatasIso(hojeIso, escolhido.fim), conta: escolhido.conta, contratoId: escolhido.id, terminado: futuros.length === 0 };
+}
+function contactosOrdenados(c) { return (Array.isArray(c && c.contactos) ? c.contactos : []).filter((x) => x && x.em).sort((a, b) => b.em.localeCompare(a.em)); }
+const chavesResolvidas = (c) => new Set((Array.isArray(c && c.contactos) ? c.contactos : []).map((x) => x && x.resolveu).filter(Boolean));
+function calcularListaHoje(clientes, mapaContratos, hoje = new Date()) {
+  const hojeIso = hoje.toISOString().slice(0, 10);
+  const renovacoes = [], propostas = [], passos = [], semContacto = [], fechadas = [];
+  clientes.forEach((c) => {
+    const resolvidas = chavesResolvidas(c);
+    const f = calcularFimMaisProximo(mapaContratos.get(String(c.n)), hoje);
+    if (f && !f.terminado && f.dias <= 183 && !resolvidas.has(`renovacao:${f.conta}:${f.fim}`)) renovacoes.push({ c, ...f });
+    (Array.isArray(c.propostas) ? c.propostas : []).forEach((p) => {
+      if (p.fechada && p.fechadaEm && p.entregueEm && !resolvidas.has(`fechada:${p.entregueEm}`) && diasEntreDatasIso(p.fechadaEm.slice(0, 10), hojeIso) <= DIAS_PROPOSTAS_FECHADAS) fechadas.push({ c, entregueEm: p.entregueEm, fechadaEm: p.fechadaEm, total: p.total, n: p.fechadasLinhas });
+      if (p.fechada || !p.entregueEm || resolvidas.has(`proposta:${p.entregueEm}`)) return;
+      const dias = diasEntreDatasIso(p.entregueEm.slice(0, 10), hojeIso);
+      if (dias >= DIAS_PROPOSTA_SEM_RESPOSTA) propostas.push({ c, dias, total: p.total, entregueEm: p.entregueEm });
+    });
+    // Só o contacto mais recente conta: registar um contacto novo "fecha" o passo anterior.
+    const ultimo = contactosOrdenados(c).find((x) => !x.resolveu);
+    if (ultimo) {
+      if (ultimo.proximoEm && ultimo.proximoEm <= hojeIso) passos.push({ c, ultimo, atraso: diasEntreDatasIso(ultimo.proximoEm, hojeIso) });
+      const dias = diasEntreDatasIso(ultimo.em.slice(0, 10), hojeIso);
+      if (dias > DIAS_SEM_CONTACTO) semContacto.push({ c, ultimo, dias });
+    }
+  });
+  renovacoes.sort((a, b) => a.dias - b.dias); propostas.sort((a, b) => b.dias - a.dias);
+  passos.sort((a, b) => b.atraso - a.atraso); semContacto.sort((a, b) => b.dias - a.dias);
+  fechadas.sort((a, b) => b.fechadaEm.localeCompare(a.fechadaEm));
+  return { renovacoes, propostas, passos, semContacto, fechadas };
+}
+function filtrarPorCliente(itens, q) { return itens.filter((x) => textoContem([x.c.e, x.c.n], q)); }
+// Entrada de histórico igual à do dashboard (registarContacto / ResolverDialogo).
+function entradaContacto({ tipo, nota, proximoPasso, proximoEm, em, resolveu }) {
+  return JSON.parse(JSON.stringify({ tipo, nota: nota || "", proximoPasso: proximoPasso || "", proximoEm: proximoEm || null, em: em || new Date().toISOString(), ...(resolveu ? { resolveu } : {}) }));
+}
 // </PURE>
 
 /* ============ Firebase ============ */
@@ -305,7 +380,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "
 const eur = (v) => `${Math.round(v || 0).toLocaleString("pt-PT")}€`;
 const hojeISO = () => new Date().toISOString().slice(0, 10);
 
-let assuntos = [], negocios = [];
+let assuntos = [], negocios = [], clientes = [], mapaContratos = new Map();
 let filtroA = "abertos", filtroN = "TODOS", mesAtual = new Date().toISOString().slice(0, 7), triAtual = trimestreChave(mesAtual);
 let unsubs = [];
 
@@ -323,8 +398,10 @@ auth.onAuthStateChanged((u) => {
   unsubs.forEach((f) => f()); unsubs = [];
   $("login").classList.toggle("hidden", !!u);
   $("app").classList.toggle("hidden", !u);
-  if (!u) { assuntos = []; negocios = []; return; }
+  if (!u) { assuntos = []; negocios = []; clientes = []; mapaContratos = new Map(); return; }
   const erro = (e) => console.warn("Leitura falhou:", e.message);
+  unsubs.push(db.collection("clientes").onSnapshot((s) => { clientes = s.docs.map((d) => d.data()); desenharHoje(); }, erro));
+  unsubs.push(db.collection("contratos_permanencia").onSnapshot((s) => { const m = new Map(); s.forEach((d) => m.set(d.id, d.data())); mapaContratos = m; desenharHoje(); }, erro));
   unsubs.push(db.collection("assuntos").onSnapshot((s) => { assuntos = s.docs.map((d) => ({ ...d.data(), _pend: d.metadata.hasPendingWrites })); desenharAssuntos(); }, erro));
   unsubs.push(db.collection("comissoes_config").doc("objetivos_trimestrais").onSnapshot((d) => { objetivosDoc = d.exists ? d.data() : {}; desenharComissoes(); }, erro));
   unsubs.push(db.collection("negocios").onSnapshot((s) => { negocios = s.docs.map((d) => ({ ...d.data(), _pend: d.metadata.hasPendingWrites })); desenharNegocios(); desenharComissoes(); }, erro));
@@ -342,6 +419,72 @@ function chips(el, opcoes, atual, aoEscolher) {
   el.onclick = (e) => { const b = e.target.closest("button[data-v]"); if (b) aoEscolher(b.dataset.v); };
 }
 const fecharCom = (btn, sheet) => { $(btn).onclick = () => $(sheet).classList.add("hidden"); };
+
+/* ---- Para começar o dia ---- */
+let acoesHoje = [];
+const eurDec = (v) => Number(v || 0).toLocaleString("pt-PT", { style: "currency", currency: "EUR" });
+function desenharHoje() {
+  const q = $("h-pesq").value;
+  const L = calcularListaHoje(clientes, mapaContratos);
+  acoesHoje = [];
+  const linha = (x, detalhe, acoes) => {
+    const botoes = acoes.map(([modo, rotulo, extra]) => { acoesHoje.push({ c: x.c, modo, ...extra }); return `<button class="${modo === "registar" ? "sec " : ""}mini" data-i="${acoesHoje.length - 1}">${rotulo}</button>`; }).join("");
+    return `<div class="lh"><div class="nome">${esc(x.c.e || x.c.n)}</div><div class="meta">${detalhe}</div><div class="acoes">${botoes}</div></div>`;
+  };
+  const renov = (x) => linha(x, `fim ${formatarDataIsoPT(x.fim)} · daqui a ${x.dias} dias · conta ${esc(rotuloConta(x.conta))}`,
+    [["registar", "Registar contacto", {}], ["resolver", "Resolvido", { chave: `renovacao:${x.conta}:${x.fim}`, resumo: `Permanência termina a ${formatarDataIsoPT(x.fim)}` }]]);
+  const grupos = [
+    ["Próximos passos para hoje ou atrasados", "red", true, filtrarPorCliente(L.passos, q), (x) => linha(x, `${esc(x.ultimo.proximoPasso || "próximo passo")} · ${x.atraso ? `atrasado ${x.atraso} dias` : "hoje"}`,
+      [["registar", "Registar contacto", {}], ["concluir", "Concluir", { passo: x.ultimo.proximoPasso || "" }]])],
+    ["Permanência termina em menos de 1 mês", "red", true, filtrarPorCliente(L.renovacoes, q).filter((x) => x.dias <= 30), renov],
+    ["Permanência termina em 1 a 3 meses", "amber", false, filtrarPorCliente(L.renovacoes, q).filter((x) => x.dias > 30 && x.dias <= 90), renov],
+    ["Permanência termina em 3 a 6 meses", "", false, filtrarPorCliente(L.renovacoes, q).filter((x) => x.dias > 90), renov],
+    [`Propostas sem resposta há ${DIAS_PROPOSTA_SEM_RESPOSTA}+ dias`, "", false, filtrarPorCliente(L.propostas, q), (x) => linha(x, `entregue a ${formatarDataIsoPT(x.entregueEm)} · há ${x.dias} dias${x.total ? ` · ${eurDec(x.total)}/mês` : ""}`,
+      [["registar", "Registar contacto", {}], ["resolver", "Resolvido", { chave: `proposta:${x.entregueEm}`, resumo: `Proposta de ${formatarDataIsoPT(x.entregueEm)}` }]])],
+    [`Propostas fechadas (últimos ${DIAS_PROPOSTAS_FECHADAS} dias)`, "green", false, filtrarPorCliente(L.fechadas, q), (x) => linha(x, `fechada em ${formatarDataIsoPT(x.fechadaEm)} · ${eurDec(x.total)}${x.n ? ` · ${x.n} serviço(s) com contrato` : ""}`,
+      [["resolver", "Resolvido", { chave: `fechada:${x.entregueEm}`, resumo: `Proposta fechada em ${formatarDataIsoPT(x.fechadaEm)}` }]])],
+    [`Sem contacto há mais de ${DIAS_SEM_CONTACTO} dias`, "", false, filtrarPorCliente(L.semContacto, q), (x) => linha(x, `último: ${formatarDataIsoPT(x.ultimo.em)} · há ${x.dias} dias`, [["registar", "Registar contacto", {}]])],
+  ];
+  $("h-lista").innerHTML = clientes.length ? grupos.map(([t, cor, aberto, itens, render]) =>
+    `<details class="grp ${cor}"${aberto && itens.length ? " open" : ""}><summary><span>${esc(t)}</span><span class="tag">${itens.length}</span></summary>${itens.length ? itens.map(render).join("") : '<div class="lh meta">Ninguém neste grupo.</div>'}</details>`).join("")
+    : '<div class="vazio">A carregar clientes…</div>';
+}
+$("h-pesq").addEventListener("input", desenharHoje);
+let acaoAtual = null;
+$("h-lista").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-i]"); if (!b) return;
+  acaoAtual = acoesHoje[Number(b.dataset.i)]; if (!acaoAtual) return;
+  const { c, modo, passo, resumo } = acaoAtual;
+  $("hs-titulo").textContent = modo === "registar" ? "Registar contacto" : modo === "concluir" ? "Concluir próximo passo" : "Assunto resolvido";
+  $("hs-cliente").textContent = c.e || c.n; $("hs-ctx").textContent = modo === "concluir" ? (passo || "próximo passo") : (resumo || "");
+  $("hs-box-tipo").classList.toggle("hidden", modo === "resolver");
+  $("hs-box-passo").classList.toggle("hidden", modo !== "registar");
+  $("hs-box-data").classList.toggle("hidden", modo !== "resolver");
+  $("hs-nota-l").textContent = modo === "resolver" ? "O que ficou resolvido *" : modo === "concluir" ? "O que fizeste" : "O que se falou";
+  $("hs-tipo").value = modo === "concluir" ? "Email" : "Telefone";
+  $("hs-nota").value = ""; $("hs-passo").value = ""; $("hs-proximo").value = ""; $("hs-data").value = hojeISO();
+  $("hs-erro").classList.add("hidden"); $("h-sheet").classList.remove("hidden");
+});
+fecharCom("hs-fechar", "h-sheet");
+$("hs-guardar").onclick = async () => {
+  const { c, modo, passo, chave, resumo } = acaoAtual || {};
+  if (!c) return;
+  const erro = (t) => { $("hs-erro").textContent = t; $("hs-erro").classList.remove("hidden"); };
+  const nota = $("hs-nota").value.trim();
+  let entrada;
+  if (modo === "resolver") {
+    if (!nota || !$("hs-data").value) return erro("Escreve o que ficou resolvido.");
+    entrada = entradaContacto({ tipo: "Resolvido", nota: `${resumo ? resumo + " — " : ""}${nota}`, em: new Date(`${$("hs-data").value}T12:00:00`).toISOString(), resolveu: chave });
+  } else if (modo === "concluir") entrada = entradaContacto({ tipo: $("hs-tipo").value, nota: nota || `Concluído: ${passo || "próximo passo"}` });
+  else entrada = entradaContacto({ tipo: $("hs-tipo").value, nota, proximoPasso: $("hs-passo").value.trim(), proximoEm: $("hs-proximo").value || null });
+  $("hs-guardar").disabled = true;
+  try {
+    // update (não set) + arrayUnion: como no dashboard, nunca cria ficha nova e duas gravações ao mesmo tempo não se apagam.
+    await db.collection("clientes").doc(String(c.n)).update({ contactos: firebase.firestore.FieldValue.arrayUnion(entrada) });
+    $("h-sheet").classList.add("hidden");
+  } catch (e) { erro("Não foi possível gravar. Tenta outra vez."); }
+  $("hs-guardar").disabled = false;
+};
 
 /* ---- Assuntos ---- */
 function desenharAssuntos() {
