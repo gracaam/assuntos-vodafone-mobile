@@ -16,27 +16,32 @@
   html, body { margin: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--ink);
          padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
-  .wrap { max-width: 560px; margin: 0 auto; padding: 16px 14px 24px; }
-  h1 { font-size: 18px; margin: 0 0 2px; }
-  .sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; }
-  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 12px 14px 24px; }
+  h1 { font-size: 18px; margin: 0; }
+  .sub { font-size: 12px; color: var(--muted); margin: 2px 0 10px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
   label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
   input, select, textarea { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 16px; background: #fff; color: var(--ink); }
-  textarea { min-height: 72px; resize: vertical; }
+  textarea { min-height: 84px; resize: vertical; }
+  /* iOS Safari desenha o campo de data com largura própria e sai do cartão. */
+  input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; min-height: 46px; }
   button { font: inherit; font-size: 15px; border: 0; border-radius: 10px; padding: 12px 14px; min-height: 44px; cursor: pointer; background: var(--vf); color: #fff; font-weight: 600; }
   button.sec { background: #fff; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+  button.perigo { background: #fff; color: #b91c1c; border: 1px solid #fca5a5; }
+  button.mini { min-height: 36px; padding: 6px 10px; font-size: 13px; }
   button:disabled { opacity: .5; }
   .row { display: flex; gap: 8px; align-items: center; }
-  .row > * { flex: 1; }
+  .row > * { flex: 1; min-width: 0; }
   .row > button { flex: none; }
   .hidden { display: none !important; }
-  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 8px; scrollbar-width: none; }
-  .chip { flex: none; padding: 8px 12px; min-height: 36px; border-radius: 99px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 13px; font-weight: 500; }
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin: 8px 0 4px; scrollbar-width: none; }
+  .chip { flex: none; padding: 6px 12px; min-height: 36px; border-radius: 99px; border: 1px solid var(--line); background: #fff; color: var(--ink); font-size: 13px; font-weight: 500; }
   .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
   .item { display: flex; flex-direction: column; gap: 4px; }
-  .item .top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
-  .item .nome { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
-  .item .meta { font-size: 12px; color: var(--muted); }
+  .top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+  .nome { font-weight: 600; font-size: 15px; overflow-wrap: anywhere; }
+  .meta { font-size: 12px; color: var(--muted); }
+  .clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; font-size: 14px; }
   .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: #eee; color: #444; white-space: nowrap; }
   .tag.alta { background: #fde2e1; color: #b91c1c; }
   .tag.ok { background: #d1fae5; color: #065f46; }
@@ -49,13 +54,22 @@
   .nav button { flex: 1; background: none; color: var(--muted); border-radius: 0; font-size: 11px; font-weight: 500; padding: 8px 2px; min-height: 56px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
   .nav button span.i { font-size: 20px; line-height: 1; }
   .nav button.on { color: var(--vf); font-weight: 700; }
-  .kpi { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
-  .kpi .card { margin: 0; padding: 12px; }
-  .kpi .v { font-size: 20px; font-weight: 700; }
+  .kpi { display: flex; background: #fff; border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; }
+  .kpi > div { flex: 1; padding: 10px 12px; }
+  .kpi > div + div { border-left: 1px solid var(--line); }
+  .kpi .v { font-size: 18px; font-weight: 700; }
   .kpi .l { font-size: 11px; color: var(--muted); }
-  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-  .topbar button { min-height: 36px; padding: 6px 10px; font-size: 12px; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .topbar button { min-height: 36px; padding: 6px 10px; font-size: 13px; }
   .sheet { position: fixed; inset: 0; background: var(--bg); z-index: 20; overflow-y: auto; padding: 14px 14px calc(24px + env(safe-area-inset-bottom)); }
+  /* Negócios: linhas compactas */
+  .neg { padding: 10px 12px; margin-bottom: 6px; }
+  .neg .l1, .neg .l2 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .neg .nome { font-size: 14px; }
+  .neg .l2 { margin-top: 4px; }
+  .neg .l2 .meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  select.est { width: auto; flex: none; max-width: 52%; padding: 4px 22px 4px 8px; font-size: 12px; font-weight: 600; border-radius: 99px; min-height: 32px; }
+  .pesq { margin-bottom: 4px; }
 </style>
 </head>
 <body>
@@ -76,46 +90,34 @@
 <div id="app" class="hidden">
   <!-- Assuntos em Progresso -->
   <section id="v-assuntos" class="wrap">
-    <div class="topbar"><h1>Assuntos em Progresso</h1><button class="sec" data-sair>Sair</button></div>
+    <div class="topbar"><h1>Assuntos</h1><div class="row" style="flex:none"><button id="a-novo" class="mini">+ Novo</button><button class="sec mini" data-sair>Sair</button></div></div>
     <div class="sub">Sincroniza com o dashboard no computador</div>
-    <div class="card">
-      <label for="a-coment">Novo assunto</label>
-      <textarea id="a-coment" placeholder="O que ficou por fazer?"></textarea>
-      <div class="row">
-        <div><label for="a-cliente">Cliente (opcional)</label><input id="a-cliente" type="text" /></div>
-        <div><label for="a-imp">Importância</label><select id="a-imp"><option>Média</option><option>Alta</option><option>Baixa</option></select></div>
-      </div>
-      <label for="a-prev">Data prevista (opcional)</label>
-      <input id="a-prev" type="date" />
-      <div style="margin-top:12px"><button id="a-add" style="width:100%">Adicionar</button></div>
-      <div id="a-erro" class="erro hidden"></div>
-    </div>
+    <input id="a-pesq" class="pesq" type="search" placeholder="Pesquisar cliente ou texto" />
     <div class="chips" id="a-filtro"></div>
     <div id="a-lista"></div>
   </section>
 
   <!-- Negócios do Trimestre -->
   <section id="v-negocios" class="wrap hidden">
-    <div class="topbar"><h1>Negócios do Trimestre</h1><button class="sec" data-sair>Sair</button></div>
-    <div class="sub">Os negócios são os mesmos do dashboard</div>
-    <div class="row" style="margin-bottom:10px">
+    <div class="topbar"><h1>Negócios</h1><div class="row" style="flex:none"><button id="n-novo" class="mini">+ Novo</button><button class="sec mini" data-sair>Sair</button></div></div>
+    <div class="row" style="margin:8px 0">
       <button class="sec" id="n-prev" aria-label="Mês anterior">‹</button>
       <div id="n-mes" style="text-align:center;font-weight:600"></div>
       <button class="sec" id="n-next" aria-label="Mês seguinte">›</button>
     </div>
     <div class="kpi">
-      <div class="card"><div class="v" id="n-rlmc">0€</div><div class="l">RLMC implementado</div></div>
-      <div class="card"><div class="v" id="n-pipe">0€</div><div class="l">RLMC em pipeline</div></div>
+      <div><div class="v" id="n-rlmc">0€</div><div class="l">RLMC implementado</div></div>
+      <div><div class="v" id="n-pipe">0€</div><div class="l">RLMC em pipeline</div></div>
     </div>
+    <input id="n-pesq" class="pesq" type="search" placeholder="Pesquisar empresa ou tarifário" />
     <div class="chips" id="n-filtro"></div>
-    <div style="margin-bottom:12px"><button id="n-novo" style="width:100%">+ Novo negócio</button></div>
     <div id="n-lista"></div>
   </section>
 
   <!-- Comissões -->
   <section id="v-comissoes" class="wrap hidden">
-    <div class="topbar"><h1>Comissões</h1><button class="sec" data-sair>Sair</button></div>
-    <div class="sub">RLMC implementado por categoria. O cálculo do prémio fica no computador.</div>
+    <div class="topbar"><h1>Comissões</h1><button class="sec mini" data-sair>Sair</button></div>
+    <div class="sub">RLMC ajustada por categoria contra o objetivo (atingido a partir de 90%). O prémio fica no computador.</div>
     <div class="row" style="margin-bottom:10px">
       <button class="sec" id="c-prev" aria-label="Trimestre anterior">‹</button>
       <div id="c-tri" style="text-align:center;font-weight:600"></div>
@@ -125,12 +127,12 @@
   </section>
 
   <section id="v-hoje" class="wrap hidden">
-    <div class="topbar"><h1>Para começar o dia</h1><button class="sec" data-sair>Sair</button></div>
+    <div class="topbar"><h1>Para começar o dia</h1><button class="sec mini" data-sair>Sair</button></div>
     <div class="vazio">Ainda não está disponível no telemóvel.<br>Continua no computador por agora.</div>
   </section>
 
   <section id="v-relatorios" class="wrap hidden">
-    <div class="topbar"><h1>Relatórios</h1><button class="sec" data-sair>Sair</button></div>
+    <div class="topbar"><h1>Relatórios</h1><button class="sec mini" data-sair>Sair</button></div>
     <div class="vazio">Ainda não está disponível no telemóvel.<br>Continua no computador por agora.</div>
   </section>
 
@@ -143,9 +145,26 @@
   </nav>
 </div>
 
-<!-- Folha de edição/criação de negócio -->
+<!-- Folha de assunto (novo/editar) -->
+<div id="a-sheet" class="sheet hidden">
+  <div class="topbar"><h1 id="as-titulo">Assunto</h1><button class="sec mini" id="as-fechar">Fechar</button></div>
+  <div class="card">
+    <label for="as-coment">O que ficou por fazer? *</label><textarea id="as-coment"></textarea>
+    <label for="as-cliente">Cliente (opcional)</label><input id="as-cliente" type="text" />
+    <div class="row">
+      <div><label for="as-imp">Importância</label><select id="as-imp"><option>Alta</option><option>Média</option><option>Baixa</option></select></div>
+      <div><label for="as-estado">Estado</label><select id="as-estado"><option>Em aberto</option><option>Em progresso</option><option>Resolvido</option></select></div>
+    </div>
+    <label for="as-prev">Data prevista (opcional)</label><input id="as-prev" type="date" />
+    <div style="margin-top:12px"><button id="as-guardar" style="width:100%">Guardar</button></div>
+    <div style="margin-top:8px"><button id="as-apagar" class="perigo" style="width:100%">Apagar assunto</button></div>
+    <div id="as-erro" class="erro hidden"></div>
+  </div>
+</div>
+
+<!-- Folha de negócio (novo/editar) -->
 <div id="n-sheet" class="sheet hidden">
-  <div class="topbar"><h1 id="ns-titulo">Negócio</h1><button class="sec" id="ns-fechar">Fechar</button></div>
+  <div class="topbar"><h1 id="ns-titulo">Negócio</h1><button class="sec mini" id="ns-fechar">Fechar</button></div>
   <div class="card">
     <label for="ns-empresa">Empresa *</label><input id="ns-empresa" type="text" />
     <label for="ns-data">Data de início *</label><input id="ns-data" type="date" />
@@ -161,7 +180,7 @@
       <div><label for="ns-rlmc">RLMC (€)</label><input id="ns-rlmc" type="number" inputmode="decimal" step="0.01" /></div>
     </div>
     <label for="ns-obs">Observações</label><textarea id="ns-obs"></textarea>
-    <div id="ns-aviso" class="sub" style="margin-top:10px">Para marcar como Implementado, usa o dashboard no computador.</div>
+    <div class="sub" style="margin-top:10px">Para marcar como Implementado, usa o dashboard no computador.</div>
     <div style="margin-top:12px"><button id="ns-guardar" style="width:100%">Guardar</button></div>
     <div id="ns-erro" class="erro hidden"></div>
   </div>
@@ -173,6 +192,7 @@
 const MESES_PT = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const ESTADOS_NEGOCIO = ["AGUARDA GRE/DATA", "DATA FUTURA", "EM IMPLEMENTAÇÃO", "EM NEGOCIAÇÃO", "IMPLEMENTADO", "PERDIDO", "PIPE"];
 const ESTADOS_PIPELINE = ["EM NEGOCIAÇÃO", "AGUARDA GRE/DATA", "DATA FUTURA", "EM IMPLEMENTAÇÃO"];
+const ROTULOS_CAT = { NRECEITAFIXO: "Nova Receita Fixo", "NRECEITAMÓVEL": "Nova Receita Móvel", NRECEITASS: "Nova Smart Solutions", "REFIDELIZAÇÃOFIXO": "Refidelização Fixo & ICT", "REFIDELIZAÇÃOMÓVEL": "Refidelização Móvel" };
 const NEGOCIO_VAZIO = {
   linhaExcel: null, nif: "", empresa: "", tipoCliente: "EMPRESA", natureza: "NRECEITA",
   atividade: "INCENTIVADA", contrato: "PPMIN", meses: 24, periodoTexto: "", estado: "EM NEGOCIAÇÃO",
@@ -187,19 +207,76 @@ function calcularCategoriaNegocio(natureza, categoriaObjetivo, produtoSS) {
   }
   return `${natureza}${categoriaObjetivo}`;
 }
+function rotuloCategoria(c) { return ROTULOS_CAT[c] || c || ""; }
+// Cópias fiéis de calcularRlmcAjustadaAtingimento e do atingimento por categoria do dashboard.html — manter em sincronia.
+const MULTIPLICADOR_UPFRONT_OFERTA = { GOLD: 1, BRONZE: 0.70, SILVER: 0.60, ESTANHO: 0.36 };
+const OBJETIVO_TRIMESTRAL_POR_CATEGORIA = { "NRECEITAMÓVEL": 590, "REFIDELIZAÇÃOMÓVEL": 2160, NRECEITAFIXO: 460, "REFIDELIZAÇÃOFIXO": 910, NRECEITASS: 315 };
+function ajusteDuracaoUpfront(meses) {
+  const m = Number(meses);
+  if (m >= 12 && m <= 17) return 0.40;
+  if (m >= 18 && m <= 23) return 0.6488;
+  if (m >= 24 && m <= 29) return 1.00;
+  if (m >= 30 && m <= 35) return 1.125;
+  if (m >= 36 && m <= 47) return 1.2525;
+  if (m >= 48) return 1.50;
+  return null;
+}
+function calcularRlmcAjustada(n) {
+  const ajuste = ajusteDuracaoUpfront(n.meses), mult = MULTIPLICADOR_UPFRONT_OFERTA[n.tipoOferta];
+  if (ajuste === null || mult === undefined) return null;
+  let r = (Number(n.rlmc) || 0) * ajuste * mult;
+  if (n.tipoCliente === "PARTICULAR") r *= 0.5;
+  if (n.categoriaObjetivo === "MÓVEL" && n.atividade === "NÃO INCENTIVADA") r *= 0.5;
+  return Number(r.toFixed(2));
+}
+function parseNumeroPT(str) {
+  if (str === null || str === undefined) return null;
+  let s = String(str).trim().replace(/\s/g, "").replace(/€/g, "");
+  if (s === "") return null;
+  if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+  else if (s.includes(".")) { const p = s.split("."); if (p.length > 1 && p[p.length - 1].length === 3) s = p.join(""); }
+  const n = Number(s); return Number.isFinite(n) ? n : null;
+}
+// Objetivos do trimestre: valor editado no dashboard (comissoes_config/objetivos_trimestrais) ou o fixo por omissão.
+function objetivosDoTrimestre(doc, tri) {
+  const editado = (doc && doc[tri]) || {}, r = {};
+  Object.keys(OBJETIVO_TRIMESTRAL_POR_CATEGORIA).forEach((c) => { const p = parseNumeroPT(editado[c]); r[c] = p !== null ? p : OBJETIVO_TRIMESTRAL_POR_CATEGORIA[c]; });
+  return r;
+}
+function atingimentoTrimestre(negocios, tri, objetivos) {
+  const impl = negocios.filter((n) => n.estado === "IMPLEMENTADO" && mesChave(n.dataInicio) && trimestreChave(mesChave(n.dataInicio)) === tri);
+  const cats = Object.entries(objetivos).map(([categoria, objetivo]) => {
+    const real = impl.filter((n) => calcularCategoriaNegocio(n.natureza, n.categoriaObjetivo, n.produtoSS) === categoria).reduce((s, n) => s + (calcularRlmcAjustada(n) || 0), 0);
+    const frac = objetivo ? real / objetivo : 0;
+    return { categoria, objetivo, real: Number(real.toFixed(2)), pct: Number((frac * 100).toFixed(1)), atingido: frac >= 0.9 };
+  });
+  return { nivel: cats.filter((c) => c.atingido).length, cats, nImplementados: impl.length };
+}
 function mesChave(dataInicio) { return /^\d{4}-\d{2}/.test(dataInicio || "") ? dataInicio.slice(0, 7) : null; }
 function labelMes(chave) { const [a, m] = chave.split("-").map(Number); return `${MESES_PT[m - 1]} ${a}`; }
 function somaMes(chave, delta) { const [a, m] = chave.split("-").map(Number); const d = new Date(a, m - 1 + delta, 1); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; }
 function trimestreChave(chave) { const [a, m] = chave.split("-").map(Number); return `${a}-Q${Math.floor((m - 1) / 3) + 1}`; }
 function somaTrimestre(tri, delta) { const [a, q] = tri.split("-Q").map(Number); const i = a * 4 + (q - 1) + delta; return `${Math.floor(i / 4)}-Q${(i % 4) + 1}`; }
 function labelTrimestre(tri) { const [a, q] = tri.split("-Q").map(Number); return `${MESES_PT[(q - 1) * 3]}–${MESES_PT[(q - 1) * 3 + 2]} ${a}`; }
+function diaMes(dataInicio) { return /^\d{4}-\d{2}-\d{2}/.test(dataInicio || "") ? `${dataInicio.slice(8, 10)}/${dataInicio.slice(5, 7)}` : ""; }
 function novoIdAssunto() { return `assunto-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`; }
+function textoContem(campos, q) { const t = String(q || "").trim().toLowerCase(); return !t || campos.some((c) => String(c ?? "").toLowerCase().includes(t)); }
 const ORDEM_IMP = { Alta: 0, "Média": 1, Baixa: 2 };
 function ordenarAssuntos(lista) {
   return [...lista].sort((a, b) => (a.estado === "Resolvido") - (b.estado === "Resolvido")
     || (ORDEM_IMP[a.importancia] ?? 1) - (ORDEM_IMP[b.importancia] ?? 1)
     || String(a.dataPrevista || "9999").localeCompare(String(b.dataPrevista || "9999")));
 }
+function filtrarAssuntos(lista, filtro, q) {
+  return ordenarAssuntos(lista.filter((a) => (filtro === "todos" || (filtro === "abertos") === (a.estado !== "Resolvido")) && textoContem([a.cliente, a.comentario], q)));
+}
+function atrasado(a, hoje) { return !!a.dataPrevista && a.estado !== "Resolvido" && a.dataPrevista < hoje; }
+function filtrarNegocios(lista, mes, estado, q) {
+  return lista.filter((n) => mesChave(n.dataInicio) === mes && (estado === "TODOS" || n.estado === estado) && textoContem([n.empresa, n.tarifario, n.nif], q))
+    .sort((a, b) => String(b.dataInicio).localeCompare(String(a.dataInicio)));
+}
+// IMPLEMENTADO só se o negócio já o é: no computador, guardar nesse estado também atualiza a ficha do cliente.
+function opcoesEstadoNegocio(atual) { return ESTADOS_NEGOCIO.filter((s) => s !== "IMPLEMENTADO" || atual === "IMPLEMENTADO"); }
 function somarRlmc(negocios, estados) { return negocios.filter((n) => estados.includes(n.estado)).reduce((s, n) => s + (Number(n.rlmc) || 0), 0); }
 function construirNegocio(form, existente) {
   const base = { ...NEGOCIO_VAZIO, ...(existente || {}) };
@@ -226,6 +303,7 @@ const db = firebase.firestore();
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const eur = (v) => `${Math.round(v || 0).toLocaleString("pt-PT")}€`;
+const hojeISO = () => new Date().toISOString().slice(0, 10);
 
 let assuntos = [], negocios = [];
 let filtroA = "abertos", filtroN = "TODOS", mesAtual = new Date().toISOString().slice(0, 7), triAtual = trimestreChave(mesAtual);
@@ -248,6 +326,7 @@ auth.onAuthStateChanged((u) => {
   if (!u) { assuntos = []; negocios = []; return; }
   const erro = (e) => console.warn("Leitura falhou:", e.message);
   unsubs.push(db.collection("assuntos").onSnapshot((s) => { assuntos = s.docs.map((d) => ({ ...d.data(), _pend: d.metadata.hasPendingWrites })); desenharAssuntos(); }, erro));
+  unsubs.push(db.collection("comissoes_config").doc("objetivos_trimestrais").onSnapshot((d) => { objetivosDoc = d.exists ? d.data() : {}; desenharComissoes(); }, erro));
   unsubs.push(db.collection("negocios").onSnapshot((s) => { negocios = s.docs.map((d) => ({ ...d.data(), _pend: d.metadata.hasPendingWrites })); desenharNegocios(); desenharComissoes(); }, erro));
 });
 
@@ -262,57 +341,101 @@ function chips(el, opcoes, atual, aoEscolher) {
   el.innerHTML = opcoes.map(([v, l]) => `<button class="chip${v === atual ? " on" : ""}" data-v="${esc(v)}">${esc(l)}</button>`).join("");
   el.onclick = (e) => { const b = e.target.closest("button[data-v]"); if (b) aoEscolher(b.dataset.v); };
 }
+const fecharCom = (btn, sheet) => { $(btn).onclick = () => $(sheet).classList.add("hidden"); };
 
 /* ---- Assuntos ---- */
 function desenharAssuntos() {
   chips($("a-filtro"), [["abertos", "Em aberto"], ["resolvidos", "Resolvidos"], ["todos", "Todos"]], filtroA, (v) => { filtroA = v; desenharAssuntos(); });
-  const vis = ordenarAssuntos(assuntos.filter((a) => filtroA === "todos" || (filtroA === "abertos") === (a.estado !== "Resolvido")));
+  const vis = filtrarAssuntos(assuntos, filtroA, $("a-pesq").value);
+  const hoje = hojeISO();
   $("a-lista").innerHTML = vis.length ? vis.map((a) => `
-    <div class="card item">
+    <div class="card item" data-id="${esc(a.id)}" role="button" tabindex="0">
       <div class="top"><span class="nome">${esc(a.cliente || "Sem cliente")}</span><span class="tag ${a.importancia === "Alta" ? "alta" : ""}">${esc(a.importancia || "Média")}</span></div>
-      <div>${esc(a.comentario)}</div>
-      <div class="meta">${a.dataPrevista ? "Previsto: " + esc(a.dataPrevista) + " · " : ""}${esc(a.dataPedido || "")}${a._pend ? ' <span class="pend">· a sincronizar</span>' : ""}</div>
-      <select data-id="${esc(a.id)}" aria-label="Estado do assunto">${["Em aberto", "Em progresso", "Resolvido"].map((s) => `<option${s === a.estado ? " selected" : ""}>${s}</option>`).join("")}</select>
+      <div class="clamp">${esc(a.comentario)}</div>
+      <div class="top">
+        <span class="meta">${esc(a.estado)}${a.dataPrevista ? " · prev. " + esc(a.dataPrevista) : ""}${atrasado(a, hoje) ? ' <b style="color:#b91c1c">· atrasado</b>' : ""}${a._pend ? ' <span class="pend">· a sincronizar</span>' : ""}</span>
+        <button class="sec mini" data-alt="${esc(a.id)}">${a.estado === "Resolvido" ? "Reabrir" : "✓ Resolver"}</button>
+      </div>
     </div>`).join("") : '<div class="vazio">Sem assuntos nesta vista.</div>';
 }
-$("a-lista").addEventListener("change", async (e) => {
-  const sel = e.target.closest("select[data-id]"); if (!sel) return;
-  try { await db.collection("assuntos").doc(sel.dataset.id).set({ estado: sel.value }, { merge: true }); }
-  catch (err) { alert("Não foi possível gravar. Tenta outra vez."); }
+$("a-pesq").addEventListener("input", desenharAssuntos);
+$("a-lista").addEventListener("click", async (e) => {
+  const alt = e.target.closest("[data-alt]");
+  if (alt) {
+    e.stopPropagation();
+    const a = assuntos.find((x) => x.id === alt.dataset.alt); if (!a) return;
+    try { await db.collection("assuntos").doc(a.id).set({ estado: a.estado === "Resolvido" ? "Em aberto" : "Resolvido" }, { merge: true }); }
+    catch (err) { alert("Não foi possível gravar. Tenta outra vez."); }
+    return;
+  }
+  const c = e.target.closest("[data-id]"); if (c) abrirAssunto(assuntos.find((x) => x.id === c.dataset.id));
 });
-$("a-add").addEventListener("click", async () => {
-  const comentario = $("a-coment").value.trim();
-  $("a-erro").classList.add("hidden");
-  if (!comentario) { $("a-erro").textContent = "Escreve o que ficou por fazer."; $("a-erro").classList.remove("hidden"); return; }
-  const id = novoIdAssunto();
-  $("a-add").disabled = true;
+let assuntoEmEdicao = null;
+function abrirAssunto(a) {
+  assuntoEmEdicao = a || null;
+  $("as-titulo").textContent = a ? "Editar assunto" : "Novo assunto";
+  $("as-coment").value = a ? a.comentario || "" : ""; $("as-cliente").value = a ? a.cliente || "" : "";
+  $("as-imp").value = a ? a.importancia || "Média" : "Média"; $("as-estado").value = a ? a.estado || "Em aberto" : "Em aberto";
+  $("as-prev").value = a ? a.dataPrevista || "" : "";
+  $("as-apagar").classList.toggle("hidden", !a); $("as-erro").classList.add("hidden");
+  $("a-sheet").classList.remove("hidden");
+}
+$("a-novo").onclick = () => abrirAssunto(null);
+fecharCom("as-fechar", "a-sheet");
+$("as-guardar").onclick = async () => {
+  const erro = (t) => { $("as-erro").textContent = t; $("as-erro").classList.remove("hidden"); };
+  const comentario = $("as-coment").value.trim();
+  if (!comentario) return erro("Escreve o que ficou por fazer.");
+  const campos = { cliente: $("as-cliente").value.trim(), comentario, importancia: $("as-imp").value, estado: $("as-estado").value, dataPrevista: $("as-prev").value || "" };
+  $("as-guardar").disabled = true;
   try {
-    await db.collection("assuntos").doc(id).set({ id, cliente: $("a-cliente").value.trim(), estado: "Em aberto", importancia: $("a-imp").value,
-      comentario, dataPedido: new Date().toISOString().slice(0, 10), dataPrevista: $("a-prev").value || "" });
-    $("a-coment").value = ""; $("a-cliente").value = ""; $("a-prev").value = ""; $("a-imp").value = "Média";
-  } catch (err) { $("a-erro").textContent = "Não foi possível gravar. Tenta outra vez."; $("a-erro").classList.remove("hidden"); }
-  $("a-add").disabled = false;
-});
+    if (assuntoEmEdicao) await db.collection("assuntos").doc(assuntoEmEdicao.id).set(campos, { merge: true }); // só os campos alterados, como no dashboard
+    else { const id = novoIdAssunto(); await db.collection("assuntos").doc(id).set({ id, dataPedido: hojeISO(), ...campos }); }
+    $("a-sheet").classList.add("hidden");
+  } catch (e) { erro("Não foi possível gravar. Tenta outra vez."); }
+  $("as-guardar").disabled = false;
+};
+$("as-apagar").onclick = async () => {
+  const a = assuntoEmEdicao; if (!a || !confirm("Apagar este assunto?")) return;
+  try {
+    await db.collection("assuntos").doc(a.id).delete();
+    // Como no dashboard: apagar também o original em assuntos_inbox, senão voltava a ser importado.
+    try { await db.collection("assuntos_inbox").doc(String(a.inboxId || a.id)).delete(); } catch {}
+    $("a-sheet").classList.add("hidden");
+  } catch (e) { $("as-erro").textContent = "Não foi possível apagar. Tenta outra vez."; $("as-erro").classList.remove("hidden"); }
+};
 
 /* ---- Negócios ---- */
 const ESTADO_CHIPS = [["TODOS", "Todos"], ["EM NEGOCIAÇÃO", "Em negociação"], ["AGUARDA GRE/DATA", "Aguarda GRE"], ["DATA FUTURA", "Data futura"], ["EM IMPLEMENTAÇÃO", "Em implementação"], ["IMPLEMENTADO", "Implementado"], ["PERDIDO", "Perdido"]];
+const COR_ESTADO = { IMPLEMENTADO: "#d1fae5", PERDIDO: "#eee", "EM IMPLEMENTAÇÃO": "#e0e7ff", "EM NEGOCIAÇÃO": "#fef3c7", "AGUARDA GRE/DATA": "#fde2e1", "DATA FUTURA": "#cffafe" };
 function desenharNegocios() {
   $("n-mes").textContent = labelMes(mesAtual);
   chips($("n-filtro"), ESTADO_CHIPS, filtroN, (v) => { filtroN = v; desenharNegocios(); });
   const doMes = negocios.filter((n) => mesChave(n.dataInicio) === mesAtual);
   $("n-rlmc").textContent = eur(somarRlmc(doMes, ["IMPLEMENTADO"]));
   $("n-pipe").textContent = eur(somarRlmc(doMes, ESTADOS_PIPELINE));
-  const vis = doMes.filter((n) => filtroN === "TODOS" || n.estado === filtroN).sort((a, b) => String(b.dataInicio).localeCompare(String(a.dataInicio)));
+  const vis = filtrarNegocios(negocios, mesAtual, filtroN, $("n-pesq").value);
   $("n-lista").innerHTML = vis.length ? vis.map((n) => `
-    <div class="card item" data-l="${esc(n.linhaExcel)}" role="button" tabindex="0">
-      <div class="top"><span class="nome">${esc(n.empresa)}</span><span class="tag ${n.estado === "IMPLEMENTADO" ? "ok" : n.estado === "PERDIDO" ? "" : "warn"}">${esc(n.estado)}</span></div>
-      <div class="meta">${esc(n.categoria || "")} · ${esc(n.tarifario || "sem tarifário")} · ${esc(n.dataInicio || "")}${n._pend ? ' <span class="pend">· a sincronizar</span>' : ""}</div>
-      <div><b>${eur(n.rlmc)}</b> <span class="meta">RLMC · qt ${esc(n.qt ?? "")}</span></div>
-    </div>`).join("") : '<div class="vazio">Sem negócios neste mês.</div>';
+    <div class="card neg" data-l="${esc(n.linhaExcel)}" role="button" tabindex="0">
+      <div class="l1"><span class="nome">${esc(n.empresa)}</span><b>${eur(n.rlmc)}</b></div>
+      <div class="l2">
+        <span class="meta">${esc(rotuloCategoria(n.categoria || calcularCategoriaNegocio(n.natureza, n.categoriaObjetivo, n.produtoSS)))} · ${esc(diaMes(n.dataInicio))}${n._pend ? ' <span class="pend">· a sincronizar</span>' : ""}</span>
+        <select class="est" data-est="${esc(n.linhaExcel)}" aria-label="Estado do negócio" style="background:${COR_ESTADO[n.estado] || "#eee"}"${n.estado === "IMPLEMENTADO" ? " disabled" : ""}>
+          ${opcoesEstadoNegocio(n.estado).map((s) => `<option${s === n.estado ? " selected" : ""}>${s}</option>`).join("")}
+        </select>
+      </div>
+    </div>`).join("") : '<div class="vazio">Sem negócios nesta vista.</div>';
 }
+$("n-pesq").addEventListener("input", desenharNegocios);
 $("n-prev").onclick = () => { mesAtual = somaMes(mesAtual, -1); desenharNegocios(); };
 $("n-next").onclick = () => { mesAtual = somaMes(mesAtual, 1); desenharNegocios(); };
+$("n-lista").addEventListener("change", async (e) => {
+  const sel = e.target.closest("select[data-est]"); if (!sel) return;
+  try { await db.collection("negocios").doc(sel.dataset.est).set({ estado: sel.value }, { merge: true }); }
+  catch (err) { alert("Não foi possível gravar. Tenta outra vez."); desenharNegocios(); }
+});
 $("n-lista").addEventListener("click", (e) => {
+  if (e.target.closest("select")) return;
   const c = e.target.closest("[data-l]"); if (!c) return;
   abrirNegocio(negocios.find((n) => String(n.linhaExcel) === c.dataset.l));
 });
@@ -321,12 +444,10 @@ let editando = null;
 function abrirNegocio(n) {
   editando = n || null;
   $("ns-titulo").textContent = n ? "Editar negócio" : "Novo negócio";
-  const v = { ...NEGOCIO_VAZIO, dataInicio: new Date().toISOString().slice(0, 10), ...(n || {}) };
+  const v = { ...NEGOCIO_VAZIO, dataInicio: hojeISO(), ...(n || {}) };
   $("ns-empresa").value = v.empresa; $("ns-data").value = v.dataInicio; $("ns-nat").value = v.natureza;
   $("ns-cat").value = v.categoriaObjetivo; $("ns-ss").value = v.produtoSS || "FIXO";
-  // IMPLEMENTADO fica de fora: no computador, guardar nesse estado também atualiza a ficha do cliente (sincronizarComClientes).
-  const permitido = ESTADOS_NEGOCIO.filter((s) => s !== "IMPLEMENTADO" || v.estado === "IMPLEMENTADO");
-  $("ns-estado").innerHTML = permitido.map((s) => `<option${s === v.estado ? " selected" : ""}>${s}</option>`).join("");
+  $("ns-estado").innerHTML = opcoesEstadoNegocio(v.estado).map((s) => `<option${s === v.estado ? " selected" : ""}>${s}</option>`).join("");
   $("ns-estado").disabled = v.estado === "IMPLEMENTADO";
   $("ns-tarifario").value = v.tarifario; $("ns-qt").value = v.qt; $("ns-rlmc").value = v.rlmc; $("ns-obs").value = v.observacoes;
   $("ns-ss-box").classList.toggle("hidden", v.categoriaObjetivo !== "SS");
@@ -334,7 +455,7 @@ function abrirNegocio(n) {
   $("n-sheet").classList.remove("hidden");
 }
 $("ns-cat").onchange = () => $("ns-ss-box").classList.toggle("hidden", $("ns-cat").value !== "SS");
-$("ns-fechar").onclick = () => $("n-sheet").classList.add("hidden");
+fecharCom("ns-fechar", "n-sheet");
 $("ns-guardar").onclick = async () => {
   const empresa = $("ns-empresa").value.trim(), dataInicio = $("ns-data").value;
   const erro = (t) => { $("ns-erro").textContent = t; $("ns-erro").classList.remove("hidden"); };
@@ -354,19 +475,18 @@ $("ns-guardar").onclick = async () => {
 };
 $("n-novo").onclick = () => abrirNegocio(null);
 
-/* ---- Comissões (só leitura: totais de RLMC implementado) ---- */
-const ROTULOS_CAT = { NRECEITAFIXO: "Nova Receita Fixo", "NRECEITAMÓVEL": "Nova Receita Móvel", NRECEITASS: "Nova Smart Solutions", "REFIDELIZAÇÃOFIXO": "Refidelização Fixo & ICT", "REFIDELIZAÇÃOMÓVEL": "Refidelização Móvel" };
+/* ---- Comissões (só leitura: RLMC ajustada vs objetivo, como no dashboard) ---- */
+let objetivosDoc = {};
 function desenharComissoes() {
   $("c-tri").textContent = labelTrimestre(triAtual);
-  const doTri = negocios.filter((n) => n.estado === "IMPLEMENTADO" && mesChave(n.dataInicio) && trimestreChave(mesChave(n.dataInicio)) === triAtual);
-  const por = {};
-  for (const n of doTri) { const c = calcularCategoriaNegocio(n.natureza, n.categoriaObjetivo, n.produtoSS); por[c] = (por[c] || 0) + (Number(n.rlmc) || 0); }
-  const linhas = Object.entries(por).sort((a, b) => b[1] - a[1]);
-  const total = linhas.reduce((s, [, v]) => s + v, 0);
-  $("c-lista").innerHTML = linhas.length
-    ? `<div class="kpi"><div class="card"><div class="v">${eur(total)}</div><div class="l">RLMC implementado no trimestre</div></div><div class="card"><div class="v">${doTri.length}</div><div class="l">negócios implementados</div></div></div>`
-      + linhas.map(([c, v]) => `<div class="card row"><span>${esc(ROTULOS_CAT[c] || c)}</span><b style="text-align:right">${eur(v)}</b></div>`).join("")
-    : '<div class="vazio">Sem negócios implementados neste trimestre.</div>';
+  const r = atingimentoTrimestre(negocios, triAtual, objetivosDoTrimestre(objetivosDoc, triAtual));
+  const total = r.cats.reduce((s, c) => s + c.real, 0);
+  $("c-lista").innerHTML = `<div class="kpi"><div><div class="v">${r.nivel}/5</div><div class="l">categorias a 90% ou mais</div></div><div><div class="v">${eur(total)}</div><div class="l">RLMC ajustada · ${r.nImplementados} implementados</div></div></div>`
+    + r.cats.map((c) => `<div class="card item">
+        <div class="top"><span class="nome">${esc(rotuloCategoria(c.categoria))}</span><span class="tag ${c.atingido ? "ok" : c.pct >= 50 ? "warn" : "alta"}">${c.pct}%${c.atingido ? " · atingido" : ""}</span></div>
+        <div class="meta">${eur(c.real)} de ${eur(c.objetivo)}</div>
+        <div style="height:6px;background:#eee;border-radius:99px;overflow:hidden"><div style="height:100%;width:${Math.min(100, c.pct)}%;background:${c.atingido ? "var(--ok)" : "var(--vf)"}"></div></div>
+      </div>`).join("");
 }
 $("c-prev").onclick = () => { triAtual = somaTrimestre(triAtual, -1); desenharComissoes(); };
 $("c-next").onclick = () => { triAtual = somaTrimestre(triAtual, 1); desenharComissoes(); };
